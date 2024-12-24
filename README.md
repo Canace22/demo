@@ -1,5 +1,5 @@
-# toys
+#  Demo
 
-一些小玩具
+一些代码示例
 
-预览地址: https://canace22.github.io/toys/
+预览地址: https://canace22.github.io/demo/
