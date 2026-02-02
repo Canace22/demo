@@ -14,9 +14,30 @@ class DrawElementBounds {
    */
   init({ ele, target, color }) {
     this.canvas = document.querySelector(ele);
-    this.canvas.width = document.documentElement.offsetWidth;
-    this.canvas.height = document.documentElement.offsetHeight;
+    // 根据 Canvas 的定位方式设置尺寸
+    const isFixed = window.getComputedStyle(this.canvas).position === 'fixed';
+    const dpr = window.devicePixelRatio || 1;
+    
+    let width, height;
+    if (isFixed) {
+      // fixed 定位使用视口尺寸
+      width = window.innerWidth;
+      height = window.innerHeight;
+    } else {
+      // absolute 定位使用文档尺寸
+      width = document.documentElement.offsetWidth;
+      height = document.documentElement.offsetHeight;
+    }
+    
+    // 考虑设备像素比，提高高 DPI 屏幕的清晰度
+    this.canvas.width = width * dpr;
+    this.canvas.height = height * dpr;
+    this.canvas.style.width = width + 'px';
+    this.canvas.style.height = height + 'px';
+    
     this.ctx = this.canvas.getContext('2d');
+    // 缩放上下文以匹配设备像素比
+    this.ctx.scale(dpr, dpr);
     this.ctx.strokeStyle = color || 'yellow';
 
     let targetEle = [];
@@ -54,10 +75,12 @@ class DrawElementBounds {
   // 获取盒子的 size 相关值
   getAllRects() {
     const rects = [];
-    const {
-      x: htmlX,
-      y: htmlY,
-    } = document.documentElement.getBoundingClientRect(); //返回元素盒信息{x：x坐标，y：y坐标，width：宽度，height：高度}
+    // 检查 Canvas 的定位方式
+    const isFixed = window.getComputedStyle(this.canvas).position === 'fixed';
+    
+    // 对于 fixed 定位的 Canvas，直接使用视口坐标（因为 fixed 元素相对于视口定位）
+    // 对于 absolute 定位的 Canvas，需要获取 Canvas 位置进行坐标转换
+    const canvasRect = isFixed ? { left: 0, top: 0 } : this.canvas.getBoundingClientRect();
 
     this.targetEle.forEach((ele) => {
       const eachELRects = [...ele.getClientRects()]
@@ -65,9 +88,12 @@ class DrawElementBounds {
           return rect.width || rect.height;
         })
         .map((rect) => {
+          // 将元素的视口坐标转换为 Canvas 坐标
+          // 对于 fixed 定位的 Canvas，元素坐标已经是相对于视口的，Canvas 也在视口 (0,0)
+          // 对于 absolute 定位的 Canvas，需要减去 Canvas 的位置偏移
           return {
-            x: rect.x - htmlX,
-            y: rect.y - htmlY,
+            x: rect.x - canvasRect.left,
+            y: rect.y - canvasRect.top,
             width: rect.width,
             height: rect.height,
           };
@@ -80,6 +106,10 @@ class DrawElementBounds {
 
   // 清除画布
   clear() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const dpr = window.devicePixelRatio || 1;
+    const isFixed = window.getComputedStyle(this.canvas).position === 'fixed';
+    const width = isFixed ? window.innerWidth : document.documentElement.offsetWidth;
+    const height = isFixed ? window.innerHeight : document.documentElement.offsetHeight;
+    this.ctx.clearRect(0, 0, width, height);
   }
 }

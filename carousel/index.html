@@ -5,57 +5,259 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>无缝走马灯演示</title>
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 0;
+      background: #f5f5f5;
+    }
+
+    h2 {
+      margin-top: 30px;
+      color: #333;
+    }
+
+    .demo-section {
+      margin-bottom: 40px;
+    }
+
     .container {
-      width: 200px;
+      width: 400px;
       overflow: hidden;
       white-space: nowrap;
       background: rgb(0, 0, 0);
       color: rgb(255, 255, 255);
+      margin: 10px 0;
+      border-radius: 4px;
     }
 
-    @keyframes move {
-      0% {
-        transform: translateX(100%);
-      }
+    /* 方案1: 无缝循环滚动 */
+    .wrap-seamless {
+      padding: 0 20px;
+      height: 30px;
+      line-height: 30px;
+      display: inline-block;
+      animation: scroll-left 15s linear infinite;
+    }
 
+    @keyframes scroll-left {
+      0% {
+        transform: translateX(0);
+      }
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    .item-seamless {
+      display: inline-block;
+      padding-right: 100px; /* 消息之间的间距 */
+    }
+
+    /* 方案2: 双重复制无缝滚动 */
+    .container-double {
+      width: 400px;
+      overflow: hidden;
+      white-space: nowrap;
+      background: rgb(0, 0, 0);
+      color: rgb(255, 255, 255);
+      margin: 10px 0;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .wrap-double {
+      display: inline-block;
+      animation: scroll-double 20s linear infinite;
+    }
+
+    @keyframes scroll-double {
+      0% {
+        transform: translateX(0);
+      }
       100% {
         transform: translateX(-100%);
       }
     }
 
-    .wrap {
+    .content-double {
+      display: inline-block;
       padding: 0 20px;
       height: 30px;
       line-height: 30px;
-      animation: move 5s linear infinite;
+    }
+
+    .separator {
+      display: inline-block;
+      padding: 0 30px;
+      color: #666;
+    }
+
+    /* 方案3: 单条消息完整滚动后立即切换 */
+    .wrap-switch {
+      padding: 0 20px;
+      height: 30px;
+      line-height: 30px;
+      display: inline-block;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <p class="wrap">
-      <span class="item"></span>
-    </p>
+  <!-- 方案1: 内容重复,无缝循环 -->
+  <div class="demo-section">
+    <h2>✅ 方案1：内容重复无缝滚动</h2>
+    <p>将所有消息拼接成一串,然后复制一份,实现无缝循环</p>
+    <div class="container">
+      <div class="wrap-seamless" id="seamless-wrap">
+        <!-- 内容会通过JS动态生成 -->
+      </div>
+    </div>
+    <div class="status">所有内容连续滚动,永不停歇</div>
   </div>
+
+  <!-- 方案2: 双重内容交替滚动 -->
+  <div class="demo-section">
+    <h2>✅ 方案2：双重内容交替</h2>
+    <p>两组完全相同的内容首尾相连,当第一组滚出时第二组正好进入</p>
+    <div class="container-double">
+      <div class="wrap-double" id="double-wrap">
+        <!-- 内容会通过JS动态生成 -->
+      </div>
+    </div>
+    <div class="status">双重内容确保无缝衔接</div>
+  </div>
+
+  <!-- 方案3: 智能切换（滚完一条立即切换下一条） -->
+  <div class="demo-section">
+    <h2>✅ 方案3：智能切换滚动</h2>
+    <p>每条消息滚动完成后立即切换到下一条并开始滚动</p>
+    <div class="container">
+      <div class="wrap-switch" id="switch-wrap">
+        <span id="switch-content"></span>
+      </div>
+    </div>
+    <div class="status" id="switch-status"></div>
+  </div>
+
+  <!-- 方案4: 最简单的连续拼接 -->
+  <div class="demo-section">
+    <h2>✅ 方案4：简单拼接滚动</h2>
+    <p>所有内容用分隔符连接成一条长文本,重复2次无缝滚动</p>
+    <div class="container">
+      <div class="wrap-seamless" id="simple-wrap">
+        <!-- 内容会通过JS动态生成 -->
+      </div>
+    </div>
+    <div class="status">最简单的实现方式</div>
+  </div>
+
   <script>
-    var map = ['剩余时长: 05 小时 20 分钟', '包月截止时间：2022 年 05 月 21 日']
-    var itemNode = document.querySelector('.item')
-    function carousel (el, items,time) {
-      var curIndex = -1;
-      el.textContent = items[1]
-      setInterval(() => {
-        curIndex++
-        if (curIndex < items.length) {
-          el.textContent = items[curIndex]
-        } else {
-          curIndex = -1;
-        }
-      }, time||5000);
+    var map = ['剩余时长: 05 小时 20 分钟', '包月截止时间：2022 年 05 月 21 日','公告：张士超你把我的钥匙藏哪啦'];
+
+    // ======== 方案1: 动态生成重复内容 ========
+    var seamlessWrap = document.getElementById('seamless-wrap');
+    
+    function createSeamlessContent(items) {
+      let html = '';
+      // 重复2次确保无缝
+      for (let i = 0; i < 2; i++) {
+        items.forEach(item => {
+          html += `<span class="item-seamless">${item}</span>`;
+        });
+      }
+      console.log('方案1：',html);
+      seamlessWrap.innerHTML = html;
     }
-    carousel(itemNode,map)
+    createSeamlessContent(map);
+
+    // ======== 方案2: 动态生成双重内容 ========
+    var doubleWrap = document.getElementById('double-wrap');
+    
+    function createDoubleContent(items) {
+      let html = '';
+      // 重复2次确保无缝
+      for (let i = 0; i < 2; i++) {
+        items.forEach((item, index) => {
+          html += `<span class="content-double">${item}</span>`;
+          // 每组内容项之间添加分隔符，最后一组的最后一项不需要
+          if (!(i === 1 && index === items.length - 1)) {
+            html += `<span class="separator">|</span>`;
+          }
+        });
+      }
+      console.log('方案2：',html);
+      doubleWrap.innerHTML = html;
+    }
+    createDoubleContent(map);
+
+    // ======== 方案3: 智能切换滚动 ========
+    var switchContent = document.getElementById('switch-content');
+    var switchWrap = document.getElementById('switch-wrap');
+    var switchStatus = document.getElementById('switch-status');
+
+    function smartCarousel(contentEl, wrapEl, items) {
+      let curIndex = 0;
+      
+      function startScroll() {
+        const currentText = items[curIndex];
+        contentEl.textContent = currentText;
+        switchStatus.textContent = `正在滚动：${currentText.substring(0, 20)}...`;
+        
+        // 计算文本宽度,确定滚动时间
+        const textWidth = contentEl.offsetWidth;
+        const containerWidth = wrapEl.parentElement.offsetWidth;
+        const distance = textWidth + containerWidth;
+        // 根据距离计算时间,保持恒定速度 (像素/秒)
+        const speed = 50; // 50像素/秒
+        const duration = distance / speed;
+        
+        // 设置动画
+        wrapEl.style.animation = 'none';
+        void wrapEl.offsetWidth;
+        wrapEl.style.animation = `scroll-left ${duration}s linear`;
+        
+        // 动画结束后切换到下一条
+        setTimeout(() => {
+          curIndex = (curIndex + 1) % items.length;
+          startScroll();
+        }, duration * 1000);
+      }
+      
+      startScroll();
+    }
+    
+    // 添加动画定义
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes scroll-left {
+        from { transform: translateX(100%); }
+        to { transform: translateX(-100%); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    smartCarousel(switchContent, switchWrap, map);
+
+    // ======== 方案4: 动态生成简单拼接内容 ========
+    var simpleWrap = document.getElementById('simple-wrap');
+    
+    function createSimpleContent(items) {
+      // 用分隔符连接所有内容，重复2次
+      const text = items.join(' | ');
+      const repeatedText = `${text} | ${text}`;
+      simpleWrap.innerHTML = `<span class="item-seamless">${repeatedText}</span>`;
+      console.log('方案4：',repeatedText);
+    }
+    createSimpleContent(map);
+
   </script>
 </body>
 
